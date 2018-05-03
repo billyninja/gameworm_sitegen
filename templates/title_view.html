@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HELLO!</title>
+        <style type="text/css">
+        html, body, div, span, applet, object, iframe,
+        h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+        a, abbr, acronym, address, big, cite, code,
+        del, dfn, em, img, ins, kbd, q, s, samp,
+        small, strike, strong, sub, sup, tt, var,
+        b, u, i, center,
+        dl, dt, dd, ol, ul, li,
+        fieldset, form, label, legend,
+        table, caption, tbody, tfoot, thead, tr, th, td,
+        article, aside, canvas, details, embed,
+        figure, figcaption, footer, header, hgroup,
+        menu, nav, output, ruby, section, summary,
+        time, mark, audio, video {margin: 0;padding: 0;border: 0;font-size: 100%;font: inherit;vertical-align: baseline;}
+        article, aside, details, figcaption, figure,footer, header, hgroup, menu, nav, section {display: block;}
+        body {line-height: 1;}
+        ol, ul {list-style: none;}
+        blockquote, q {quotes: none;}
+        blockquote:before, blockquote:after,
+        q:before, q:after {content: ''; content: none;}
+        table {border-collapse: collapse;border-spacing: 0;}
+        h1.page-title {
+            padding: 12px;
+            font-size: 24px;
+            font-weight: bold;
+            /*color: #333;*/
+            font-family: sans-serif;
+        }
+        .content-block {
+            padding: 12px;
+            color: #121212;
+            font-size: 15px;
+            background-color: #F0F8FC;
+            margin: 6px;
+        }
+        nav.main-nav {
+            background-color: #01aed9;
+            color: white;
+            font-weight: bold;
+            padding: 6px 12px 36px 12px;
+        }
+        nav.main-nav ul {
+            width: 50%;
+            min-width: 900px;
+            margin: 0 auto;
+            display: block;
+            padding: 0px 36px 12px 36px;
+            border-bottom: 2px solid #fbde06;
+        }
+        nav.main-nav ul li {float: left; margin-right: 12px;}
+        nav.main-nav ul li a{ color: white; text-decoration: underline;}
+        nav.main-nav ul li a:hover{text-decoration: none;}
+        footer{
+            background-color: #019EB9;
+            color: white;
+            padding: 6px 0;
+            text-align: center;
+            margin-top: 24px;
+            margin-bottom: 0px;
+            position: absolute;
+            bottom: 0px;
+            width: 100%;
+        }
+        footer a {color: white; text-decoration: none;}
+        span.vsep{font-size: 20px; font-weight: normal; font-style: italic;}
+        strong{font-weight: bold !important;}
+        .item1 { grid-area: header; color: white; font-weight: bold;  background-color: #01aed9 !important; }
+        .item2 { grid-area: menu; }
+        .item3 { grid-area: main; }
+        .item4 { grid-area: right; }
+        .item5 { grid-area: footer; }
+        .grid-container {
+            display: grid;
+            grid-template-areas:
+              'header     header  header  header   header  header'
+              'menu       main    main    main       main   right'
+              'footer     footer  footer  footer   footer  footer';
+            grid-gap: 0px;
+            background-color: #F0F8FC;
+            padding: 0px;
+            text-align: left;
+        }
+        .grid-container > div {
+            background-color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            padding: 20px 0;
+            border: 1px solid silver;
+        }
+        .main-content{font-size: 14px !important; font-style: italic; font-family: serif;}
+        .tview-container {
+            display: grid;
+            grid-template-areas:
+              'ibcrumb     ibcrumb   ibcrumb'
+              'iheader     iheader   iheader'
+              'imain       imain     iright '
+              'ifooter     ifooter   ifooter';
+            grid-gap: 0px;
+            background-color: #F0F8FC;
+            padding: 0px;
+        }
+        .tview-container > div {
+            background-color: rgba(128, 128, 128, 1.0);
+            text-align: center;
+        }
+        .ii0 { grid-area: ibcrumb; background-color: white !important; color: blue; font-weight: bold;}
+        .ii1 {
+            grid-area: iheader;
+            background-color: purple !important;
+            color: white !important;
+            font-size: 20px !important;
+            text-align: left !important;
+        }
+        .ii2 { grid-area: imain; }
+        .ii3 { grid-area: iright; }
+        .ii4 { grid-area: ifooter; }
+        </style>
+</head>
+<body>
+
+
+<div class="grid-container">
+  <div class="item1">
+    <nav class="main-nav">
+        <ul>
+            <li><a href="#">[AAAAA]</a></li>
+            <li><a href="#">[BBBBB]</a></li>
+            <li><a href="#">[CCCCC]</a></li>
+            <li><a href="#">[DDDDD]</a></li><BR>
+        </ul>
+    </nav>
+   </div>
+    <div class="item2">Menu</div>
+    <div class="item3 main-content">
+
+
+        <div class="tview-container">
+            <div class="ii0">Bread Crumb</div>
+            <div class="ii1"><h1 class="page-title">Jack # {{.Idx}}!</h1></div>
+            <div class="ii2">bbbb</div>
+            <div class="ii3">cccc</div>
+            <div class="ii4">dddd</div>
+        </div>
+
+        <summary class="content-block">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</summary>
+        <p>{{.Blob}}</p>
+    </div>
+    <div class="item4">Right</div>
+    <div class="item5">Pseudo-Footer</div>
+</div>
+<footer>
+    <p>
+    <strong>[CC] 2018 GameWorm.</strong>&nbsp;&nbsp; <a href="#">Terms and Privacy</a> <span class="vsep">/</span> <a href="#">About Us</a> <span class="vsep">/</span> <a href="#">View The Source Code</a></p>
+    </p>
+</footer>
+    </body>
+</html>
