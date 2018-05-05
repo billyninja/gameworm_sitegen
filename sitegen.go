@@ -1,8 +1,6 @@
 package main
 
 import (
-    // "flag"
-    //    "encoding/json"
     "fmt"
     "github.com/jmoiron/sqlx"
     _ "github.com/lib/pq"
@@ -14,7 +12,8 @@ import (
     "time"
 )
 
-var re *regexp.Regexp = regexp.MustCompile("\\[\\[.+?\\]\\]")
+var re_Article *regexp.Regexp = regexp.MustCompile("\\[\\[.+?\\]\\]")
+var re_IsRomanLetter *regexp.Regexp = regexp.MustCompile("[a-zA-Z]{1}")
 
 func ping(dbc *sqlx.DB) {
     pingq := "SELECT COUNT(*) FROM article_info"
@@ -47,7 +46,20 @@ func gen_title_view(tpl *template.Template, idx int, tinfo *TitleViewInfo) error
     return err
 }
 
-type GameMode string
+type Index struct {
+    Title     string
+    Desc      string
+    query     string
+    pageLimit uint16
+}
+
+type TitleIndexInfo struct {
+    SourceTitle        string     `db:"source_title"`
+    FinalTitle         string     `db:"final_title"`
+    WikiPageId         uint64     `db:"wpid"`
+    MainInfoboxSubject string     `db:"main_infobox_subject"`
+    UpdatedAt          *time.Time `db:"updated_at"`
+}
 
 type TitleViewInfo struct {
     SourceTitle        string     `db:"source_title"`
@@ -70,6 +82,123 @@ type TitleViewInfo struct {
 type AuthorInfo struct {
     Name string `db:"source_title"`
     Role string `db:"final_title"`
+}
+
+type ListingEntry struct {
+    InnerRef string
+    WikiRef  string
+    Title    string
+    CRatio   uint8
+}
+
+func gen_title_idxs(dbc *sqlx.DB) error {
+    println("TODO! ALPHABETIC")
+    println("TODO! PAGINATE")
+    println("TODO! BY PLATFORM")
+    println("TODO! BY AUTHORS")
+    println("TODO! BY YEAR")
+    return nil
+}
+
+func gen_indexes(dbc *sqlx.DB) error {
+    q := `SELECT
+          source_title,
+          final_title,
+          ai.wiki_page_id as wpid,
+          main_infobox_subject,
+          ai.updated_at as updated_at
+    FROM article_info ai
+    LEFT JOIN assertive_game_info gi
+    ON ai.wiki_page_id = gi.wiki_page_id
+    ORDER BY final_title;
+    `
+
+    m := &Index{
+        "All Titles Alphabetic",
+        "All Titles from #-to-Z",
+        q,
+        300,
+    }
+
+    var rows *sqlx.Rows
+
+    rows, err := dbc.Queryx(m.query)
+    if err != nil {
+        log.Printf("Query Err; %+v", err)
+        log.Println(m.query)
+        return err
+    }
+
+    key := "#-9"
+    pc := 0
+    whole_thing := map[string][][]*TitleIndexInfo{}
+    whole_thing[key] = [][]*TitleIndexInfo{}
+    for rows.Next() {
+        dest := &TitleIndexInfo{}
+        err := rows.StructScan(dest)
+        if err != nil {
+            log.Panicf("\n%+v\n---", err)
+        }
+        //println(dest.FinalTitle, ic, pc)
+
+        v0 := strings.ToUpper(dest.FinalTitle[0:1])
+        is_letter := re_IsRomanLetter.MatchString(v0)
+        key = v0
+        if !is_letter {
+            key = "#-9"
+        }
+
+        pc = len(whole_thing[key]) - 1
+        if pc < 0 {
+            whole_thing[key] = [][]*TitleIndexInfo{}
+            whole_thing[key] = append(whole_thing[key], []*TitleIndexInfo{dest})
+            pc = 0
+        }
+
+        if _, ok := whole_thing[key]; !ok {
+            whole_thing[key] = [][]*TitleIndexInfo{}
+            pc = 0
+            println("here!")
+        }
+
+        whole_thing[key][pc] = append(whole_thing[key][pc], dest)
+        ic := len(whole_thing[key][pc])
+        if uint16(ic) >= m.pageLimit {
+            whole_thing[key] = append(whole_thing[key], []*TitleIndexInfo{dest})
+        }
+
+        println(key, pc, ic)
+    }
+
+    idxtitle := strings.ToLower(strings.Replace(m.Title, " ", "_", -1))
+    dirname := fmt.Sprintf("out/idxs/%s", idxtitle)
+    err = os.MkdirAll(dirname, 0755)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    filename := fmt.Sprintf("out/idxs/%s/index.html", idxtitle)
+    fh, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0755)
+    fh.Close()
+
+    for key, bucket := range whole_thing {
+        for pagenum, _ := range bucket {
+            println("key", key)
+            filename = fmt.Sprintf("%s/%s", dirname, key)
+            err := os.MkdirAll(filename, 0755)
+            if err != nil {
+                log.Fatal(err)
+            }
+            filename = fmt.Sprintf("%s/page_%d.html", filename, pagenum+1)
+            fh, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0755)
+            if err != nil {
+                log.Fatal(err)
+            }
+            fh.Close()
+        }
+    }
+
+    return err
 }
 
 func gen_title_views(dbc *sqlx.DB) error {
@@ -119,7 +248,7 @@ func gen_title_views(dbc *sqlx.DB) error {
             log.Panicf("\n%+v\n---", err)
         }
 
-        dest.GameModes = re.FindAllString(string(dest.GameModesBytes), -1)
+        dest.GameModes = re_Article.FindAllString(string(dest.GameModesBytes), -1)
         if len(dest.AuthorsBytes) > 0 {
             xx := dest.AuthorsBytes[2 : len(dest.AuthorsBytes)-2]
             spl1 := strings.Split(string(xx), `","`)
@@ -170,5 +299,6 @@ func main() {
     ping(dbc)
     log.Println("Connected!", dbc)
 
-    gen_title_views(dbc)
+    gen_indexes(dbc)
+    //gen_title_views(dbc)
 }
