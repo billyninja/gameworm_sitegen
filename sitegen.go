@@ -62,9 +62,16 @@ type TitleIndexInfo struct {
 }
 
 type IndexPage struct {
-    IndexCfg  *Index
-    PageTitle string
-    Titles    []*TitleIndexInfo
+    IndexCfg          *Index
+    PageTitle         string
+    Titles            []*TitleIndexInfo
+    SectionsPaginator []*InnerRef
+    InnerPaginator    []*InnerRef
+}
+
+type InnerRef struct {
+    IPath string
+    Label string
 }
 
 type TitleViewInfo struct {
@@ -88,15 +95,6 @@ type TitleViewInfo struct {
 type AuthorInfo struct {
     Name string `db:"source_title"`
     Role string `db:"final_title"`
-}
-
-func gen_title_idxs(dbc *sqlx.DB) error {
-    println("TODO! ALPHABETIC")
-    println("TODO! PAGINATE")
-    println("TODO! BY PLATFORM")
-    println("TODO! BY AUTHORS")
-    println("TODO! BY YEAR")
-    return nil
 }
 
 func gen_indexes(dbc *sqlx.DB) error {
@@ -143,7 +141,6 @@ func gen_indexes(dbc *sqlx.DB) error {
         if err != nil {
             log.Panicf("\n%+v\n---", err)
         }
-        //println(dest.FinalTitle, ic, pc)
 
         v0 := strings.ToUpper(dest.FinalTitle[0:1])
         is_letter := re_IsRomanLetter.MatchString(v0)
@@ -159,19 +156,11 @@ func gen_indexes(dbc *sqlx.DB) error {
             pc = 0
         }
 
-        if _, ok := whole_thing[key]; !ok {
-            whole_thing[key] = [][]*TitleIndexInfo{}
-            pc = 0
-            println("here!")
-        }
-
         whole_thing[key][pc] = append(whole_thing[key][pc], dest)
         ic := len(whole_thing[key][pc])
         if uint16(ic) >= m.pageLimit {
             whole_thing[key] = append(whole_thing[key], []*TitleIndexInfo{dest})
         }
-
-        println(key, pc, ic)
     }
 
     idxtitle := strings.ToLower(strings.Replace(m.Title, " ", "_", -1))
@@ -185,9 +174,23 @@ func gen_indexes(dbc *sqlx.DB) error {
     fh, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0755)
     fh.Close()
 
+    sref := make([]*InnerRef, len(whole_thing))
+    c := 0
+    for key, _ := range whole_thing {
+        sref[c] = &InnerRef{IPath: fmt.Sprintf("%s/%s/page_1.html", dirname, key), Label: key}
+        c++
+    }
+
     for key, bucket := range whole_thing {
+        iref := make([]*InnerRef, len(bucket))
+        c := 0
+        for pagenum, _ := range bucket {
+            p := fmt.Sprintf("%d", pagenum+1)
+            iref[c] = &InnerRef{IPath: fmt.Sprintf("/%s/%s/page_%s.html", dirname, key, p), Label: p}
+            c++
+        }
+
         for pagenum, titles := range bucket {
-            println("key", key)
             filename = fmt.Sprintf("%s/%s", dirname, key)
             err := os.MkdirAll(filename, 0755)
             if err != nil {
@@ -195,9 +198,11 @@ func gen_indexes(dbc *sqlx.DB) error {
             }
 
             ip := &IndexPage{
-                IndexCfg:  m,
-                PageTitle: fmt.Sprintf("Letter: %s - Page: %d", key, pagenum),
-                Titles:    titles,
+                IndexCfg:          m,
+                PageTitle:         fmt.Sprintf("Letter: %s - Page: %d", key, pagenum),
+                Titles:            titles,
+                SectionsPaginator: sref,
+                InnerPaginator:    iref,
             }
 
             filename = fmt.Sprintf("%s/page_%d.html", filename, pagenum+1)
@@ -205,7 +210,11 @@ func gen_indexes(dbc *sqlx.DB) error {
             if err != nil {
                 log.Fatal(err)
             }
-            tp1.ExecuteTemplate(fh, "generic_index.html", ip)
+            err = tp1.ExecuteTemplate(fh, "generic_index.html", ip)
+            if err != nil {
+                log.Fatal(err)
+            }
+
             fh.Close()
         }
     }
