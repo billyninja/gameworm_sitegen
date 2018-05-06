@@ -61,6 +61,12 @@ type TitleIndexInfo struct {
     UpdatedAt          *time.Time `db:"updated_at"`
 }
 
+type IndexPage struct {
+    IndexCfg  *Index
+    PageTitle string
+    Titles    []*TitleIndexInfo
+}
+
 type TitleViewInfo struct {
     SourceTitle        string     `db:"source_title"`
     FinalTitle         string     `db:"final_title"`
@@ -84,13 +90,6 @@ type AuthorInfo struct {
     Role string `db:"final_title"`
 }
 
-type ListingEntry struct {
-    InnerRef string
-    WikiRef  string
-    Title    string
-    CRatio   uint8
-}
-
 func gen_title_idxs(dbc *sqlx.DB) error {
     println("TODO! ALPHABETIC")
     println("TODO! PAGINATE")
@@ -101,6 +100,11 @@ func gen_title_idxs(dbc *sqlx.DB) error {
 }
 
 func gen_indexes(dbc *sqlx.DB) error {
+    tp1, err := template.ParseFiles("templates/generic_index.html")
+    if err != nil {
+        log.Panicf("%v", err)
+    }
+
     q := `SELECT
           source_title,
           final_title,
@@ -122,7 +126,7 @@ func gen_indexes(dbc *sqlx.DB) error {
 
     var rows *sqlx.Rows
 
-    rows, err := dbc.Queryx(m.query)
+    rows, err = dbc.Queryx(m.query)
     if err != nil {
         log.Printf("Query Err; %+v", err)
         log.Println(m.query)
@@ -182,18 +186,26 @@ func gen_indexes(dbc *sqlx.DB) error {
     fh.Close()
 
     for key, bucket := range whole_thing {
-        for pagenum, _ := range bucket {
+        for pagenum, titles := range bucket {
             println("key", key)
             filename = fmt.Sprintf("%s/%s", dirname, key)
             err := os.MkdirAll(filename, 0755)
             if err != nil {
                 log.Fatal(err)
             }
+
+            ip := &IndexPage{
+                IndexCfg:  m,
+                PageTitle: fmt.Sprintf("Letter: %s - Page: %d", key, pagenum),
+                Titles:    titles,
+            }
+
             filename = fmt.Sprintf("%s/page_%d.html", filename, pagenum+1)
             fh, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0755)
             if err != nil {
                 log.Fatal(err)
             }
+            tp1.ExecuteTemplate(fh, "generic_index.html", ip)
             fh.Close()
         }
     }
